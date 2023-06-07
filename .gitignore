@@ -1,5 +1,7 @@
 node_modules
 tmp/*
-!tmp/
+!tmp/.keep
 uploads/*
-!uploads/
+!uploads/.keep
+!uploads/lilj0t1axrpzf.png
+!uploads/lilj1240xy65y.jpg
