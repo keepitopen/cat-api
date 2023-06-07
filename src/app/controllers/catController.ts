@@ -21,7 +21,7 @@ export async function uploadCatPic(req: Request, res: Response) {
 
         const imageId = req.file?.filename.split('.')[0];
 
-        return res.status(200).json({ imageId });
+        return res.status(200).json({ message: 'Successfully upload picture', data: { id: imageId } });
     } catch (error) {
         res.status(500).json({ error: 'Failed to upload cat picture.' });
     }
@@ -41,16 +41,16 @@ export async function deleteCatPic(req: Request, res: Response) {
         if (matchingFiles.length === 0) {
             return res
                 .status(404)
-                .send({
-                    message: `Cat picture with imageId: '${imageId}' not found.`,
+                .json({
+                    error: `Cat picture with id: '${imageId}' not found.`
                 });
         }
 
         const filePath = path.join(UPLOADS_DIR, matchingFiles[0]);
         await fs.promises.unlink(filePath);
 
-        res.status(200).send({
-            message: `Cat picture with imageId: '${imageId}' deleted`,
+        res.status(200).json({
+            message: `Cat picture with id: '${imageId}' deleted`
         });
     } catch (error) {
         return res.status(500).json({ error: 'Failed to delete cat picture.' });
@@ -83,8 +83,8 @@ export async function updateCatPic(req: Request, res: Response) {
         if (matchingFiles.length === 0) {
             return res
                 .status(404)
-                .send({
-                    message: `Cat picture with imageId: '${imageId}' not found.`,
+                .json({
+                    error: `Cat picture with id: '${imageId}' not found.`,
                 });
         }
 
@@ -92,17 +92,17 @@ export async function updateCatPic(req: Request, res: Response) {
 
         await fs.promises.unlink(filePath);
 
-        const result = await new Promise((resolve, reject) => {
+        await new Promise((resolve, reject) => {
             fs.promises
                 .rename(tmpPath, destinationPath)
-                .then(() => resolve({ imageId: imageId }))
+                .then(() => resolve({ id: imageId }))
                 .catch((error) => {
                     console.error('Error moving the file:', error);
                     reject(error);
                 });
         });
 
-        return res.status(200).json(result);
+        return res.status(200).json({ message: 'Successfully updated picture.', data: {id: imageId} });
     } catch (error) {
         return res.status(500).json({ error: 'Failed to update cat picture.' });
     }
@@ -120,7 +120,7 @@ export async function fetchCatPicById(req: Request, res: Response) {
         if (matchingFiles.length === 0) {
             return res
                 .status(400)
-                .send({ error: 'No cat picture for this id found.' });
+                .json({ error: `Cat picture with id: '${imageId}' not found.` });
         }
 
         const result = matchingFiles[0];
@@ -143,9 +143,9 @@ export async function fetchAllCatPics(req: Request, res: Response) {
     try {
         const files = await fs.promises.readdir(UPLOADS_DIR);
         const result = files.map((file) => {
-            return { imageId: file.split(".")[0] }
+            return { id: file.split(".")[0] }
         });
-        return res.status(200).send(result);
+        return res.status(200).json({ message: 'Successfully fetched list of cat picture IDs', data: result});
     } catch (error) {
         return res.status(500).json({ error: 'Failed to fetch cat pictures.' });
     }

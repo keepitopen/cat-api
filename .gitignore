@@ -4,3 +4,5 @@ tmp/*
 uploads/*
 !uploads/lilj0t1axrpzf.png
 !uploads/lilj1240xy65y.jpg
+
+dist/*

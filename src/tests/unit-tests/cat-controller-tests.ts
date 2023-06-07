@@ -28,7 +28,7 @@ describe('fetchAllCatPics', () => {
         const req: any = {};
         const res: any = {
             status: sinon.stub().returnsThis(),
-            send: sinon.spy(),
+            json: sinon.spy(),
         };
 
         await fetchAllCatPics(req, res);
@@ -36,8 +36,8 @@ describe('fetchAllCatPics', () => {
         expect(readdirStub.calledOnceWith(UPLOADS_DIR)).to.be.true;
         expect(res.status.calledWith(200)).to.be.true;
         
-        const expectedResponse = files.map((imageId: any) => ({ imageId: imageId.split(".")[0] }));
-        expect(res.send.args[0][0]).to.deep.equal(expectedResponse);
+        const expectedResponse = files.map((id:any) => ({ id:id.split(".")[0] }));
+        expect(res.json.args[0][0]).to.deep.equal({ message: 'Successfully fetched list of cat picture IDs', data: expectedResponse});
 
         readdirStub.restore();
     });
@@ -81,7 +81,7 @@ describe('fetchCatPicById', () => {
 
         const res: any = {
             status: sinon.stub().returnsThis(),
-            send: sinon.spy(),
+            json: sinon.spy(),
             setHeader: sinon.spy(),
         };
 
@@ -99,14 +99,14 @@ describe('fetchCatPicById', () => {
             readFileStub.calledOnceWith(path.join(UPLOADS_DIR, matchingFile))
         ).to.be.true;
         expect(res.status.calledWith(200)).to.be.true;
-        expect(res.send.calledOnce).to.be.true;
+        expect(res.json.calledOnce).to.be.true;
         expect(res.setHeader.calledWith('Content-Type', 'image/jpeg')).to.be
             .true;
         expect(res.setHeader.calledWith('Content-Length', 10)).to.be.true;
     });
 
     it('should return an error if cat picture is not found by ID', async () => {
-        const imageId = 'non-existing-pic';
+        const imageId = 'non-existing-id';
 
         const req: any = {
             params: {
@@ -116,7 +116,7 @@ describe('fetchCatPicById', () => {
 
         const res: any = {
             status: sinon.stub().returnsThis(),
-            send: sinon.spy(),
+            json: sinon.spy(),
         };
 
         const readdirStub = sinon
@@ -131,7 +131,7 @@ describe('fetchCatPicById', () => {
         expect(readdirStub.calledOnceWith(UPLOADS_DIR)).to.be.true;
         expect(res.status.calledWith(400)).to.be.true;
         expect(
-            res.send.calledWith({ error: 'No cat picture for this id found.' })
+            res.json.calledWith({ error: `Cat picture with id: 'non-existing-id' not found.` })
         ).to.be.true;
     });
 });
@@ -146,9 +146,9 @@ describe('uploadCatPic', () => {
             file: {
                 path: path.join(
                     process.cwd(),
-                    '/src/tests/test-files/cat-pic-1.jpg'
+                    '/tmp/cat-pic-1.jpg'
                 ),
-                filename: 'cat-pic.jpg',
+                filename: 'cat-pic-1.jpg',
             },
         };
 
@@ -164,11 +164,11 @@ describe('uploadCatPic', () => {
         expect(
             renameStub.calledOnceWith(
                 req.file.path,
-                path.join(UPLOADS_DIR, 'cat-pic.jpg')
+                path.join(UPLOADS_DIR, 'cat-pic-1.jpg')
             )
         ).to.be.true;
         expect(res.status.calledWith(200)).to.be.true;
-        expect(res.json.calledWith({ imageId: 'cat-pic' })).to.be.true;
+        expect(res.json.calledWith({ message: 'Successfully upload picture', data: { id:'cat-pic-1' } })).to.be.true;
 
         renameStub.restore();
     });
@@ -203,8 +203,11 @@ describe('updateCatPic', () => {
                 id: 'cat-pic-1',
             },
             file: {
-                path: '/tmp/cat-pic.jpg',
-                filename: 'cat-pic.jpg',
+                path: path.join(
+                    process.cwd(),
+                    '/tmp/cat-pic-1.jpg'
+                ),
+                filename: 'cat-pic-1.jpg',
             },
         };
 
@@ -227,12 +230,12 @@ describe('updateCatPic', () => {
         ).to.be.true;
         expect(
             renameStub.calledOnceWith(
-                '/tmp/cat-pic.jpg',
+                req.file.path,
                 path.join(UPLOADS_DIR, 'cat-pic-1.jpg')
             )
         ).to.be.true;
         expect(res.status.calledWith(200)).to.be.true;
-        expect(res.json.calledWith({ imageId: 'cat-pic-1' })).to.be.true;
+        expect(res.json.calledWith({ message: 'Successfully updated picture.', data: { id:'cat-pic-1' } })).to.be.true;
     });
 
     it('should handle missing cat picture in the request', async () => {
@@ -260,17 +263,20 @@ describe('updateCatPic', () => {
     it('should handle cat picture not found', async () => {
         const req: any = {
             params: {
-                id: 'non-existing-pic',
+                id: 'non-existing-id',
             },
             file: {
-                path: '/tmp/cat-pic.jpg',
+                path: path.join(
+                    process.cwd(),
+                    '/tmp/cat-pic-1.jpg'
+                ),
                 filename: 'cat-pic.jpg',
             },
         };
 
         const res: any = {
             status: sinon.stub().returnsThis(),
-            send: sinon.spy(),
+            json: sinon.spy(),
         };
 
         const readdirStub = sinon.stub(fs.promises, 'readdir').resolves([]);
@@ -284,9 +290,9 @@ describe('updateCatPic', () => {
         expect(renameStub.notCalled).to.be.true;
         expect(res.status.calledWith(404)).to.be.true;
         expect(
-            res.send.calledWith({
-                message:
-                    "Cat picture with imageId: 'non-existing-pic' not found.",
+            res.json.calledWith({
+                error:
+                    "Cat picture with id: 'non-existing-id' not found.",
             })
         ).to.be.true;
     });
@@ -306,7 +312,7 @@ describe('deleteCatPic', () => {
 
         const res: any = {
             status: sinon.stub().returnsThis(),
-            send: sinon.spy(),
+            json: sinon.spy(),
         };
 
         const readdirStub = sinon
@@ -322,8 +328,8 @@ describe('deleteCatPic', () => {
         ).to.be.true;
         expect(res.status.calledWith(200)).to.be.true;
         expect(
-            res.send.calledWith({
-                message: "Cat picture with imageId: 'cat-pic-1' deleted",
+            res.json.calledWith({
+                message: "Cat picture with id: 'cat-pic-1' deleted"
             })
         ).to.be.true;
     });
@@ -331,13 +337,13 @@ describe('deleteCatPic', () => {
     it('should handle cat picture not found', async () => {
         const req: any = {
             params: {
-                id: 'non-existing-pic',
+                id: 'non-existing-id',
             },
         };
 
         const res: any = {
             status: sinon.stub().returnsThis(),
-            send: sinon.spy(),
+            json: sinon.spy(),
         };
 
         const readdirStub = sinon.stub(fs.promises, 'readdir').resolves([]);
@@ -349,9 +355,9 @@ describe('deleteCatPic', () => {
         expect(unlinkStub.notCalled).to.be.true;
         expect(res.status.calledWith(404)).to.be.true;
         expect(
-            res.send.calledWith({
-                message:
-                    "Cat picture with imageId: 'non-existing-pic' not found.",
+            res.json.calledWith({
+                error:
+                    "Cat picture with id: 'non-existing-id' not found.",
             })
         ).to.be.true;
     });
